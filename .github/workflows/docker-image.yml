@@ -11,12 +11,16 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    env:
-      RELEASE_VERSION: 17.0.5-$(date +%s)
 
     steps:
       - uses: actions/checkout@v3
  
+      - uses: philipparndt/get-release-number@v1
+        id: next
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          releaseType: "patch"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -32,6 +36,8 @@ jobs:
       - name: Build docker container and push
         id: docker_build
         uses: docker/build-push-action@v3
+        env:
+          RELEASE_VERSION: ${{ steps.next.outputs.version }}
         with:
           context: .
           file: ./Dockerfile
@@ -39,17 +45,18 @@ jobs:
           push: true
           tags: |
             pharndt/amazoncorretto:latest
-            pharndt/amazoncorretto:${{env.RELEASE_VERSION}}
+            pharndt/amazoncorretto:17.0.5-${{env.RELEASE_VERSION}}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.next.outputs.version }}
         with:
           tag_name: ${{env.RELEASE_VERSION}}
           release_name: ${{env.RELEASE_VERSION}}
           body: |
-            Docker tag: `pharndt/amazoncorretto:${{env.RELEASE_VERSION}}`
+            Docker tag: `pharndt/amazoncorretto:17.0.5-${{env.RELEASE_VERSION}}`
             Changes in this Release
               - Security updates
           draft: false
